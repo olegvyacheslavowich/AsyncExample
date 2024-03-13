@@ -11,7 +11,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import ru.elipson.asyncexample.databinding.FragmentFirstBinding
 import kotlin.concurrent.thread
 
@@ -37,43 +40,71 @@ class FirstFragment : Fragment() {
 
     }
 
-    private fun download() {
-        binding.progess.isVisible = true
-        loadCity {
-            binding.buttonFirst.text = it
-            loadDegree(it) { degree ->
-                binding.textviewSecond.text = degree.toString()
+    private fun downloadWithoutCoroutines(step: Int, obj: Any) {
+        when (step) {
+            0 -> {
+                binding.progess.isVisible = true
+                loadCityWithoutCoroutine {
+                    downloadWithoutCoroutines(1, it)
+                }
+            }
+
+            1 -> {
+                binding.textviewFirst.text = obj as String
+                loadDegreeWithoutCoroutine(obj) {
+                    downloadWithoutCoroutines(2, it)
+                }
+            }
+
+            2 -> {
+                binding.textviewSecond.text = (obj as Int).toString()
+                binding.progess.isVisible = false
             }
         }
     }
 
-    private fun loadCity(callback: (String) -> Unit) {
-        thread {
-            Thread.sleep(1000)
-            requireActivity().runOnUiThread {
-                callback("Moscow")
-            }
-            handler.sendMessage(Message.obtain(handler, 0, "Hello!"))
-        }
-
+    private fun loadCityWithoutCoroutine(callback: (String) -> Unit) {
+        Handler().postDelayed({
+            callback("Moscow")
+        }, 1000)
 
     }
 
-    private fun loadDegree(city: String, callback: (Int) -> Unit) {
-        thread {
-            Thread.sleep(1000)
+    private fun loadDegreeWithoutCoroutine(city: String, callback: (Int) -> Unit) {
+        Handler().postDelayed({
             Log.d("test", city)
-            Handler(Looper.getMainLooper()).post {
-                callback.invoke(25)
-            }
-        }
+            callback(25)
+        }, 1000)
+    }
+
+    private suspend fun download() {
+        binding.progess.isVisible = true
+        val city = loadCity()
+        binding.textviewFirst.text = city
+        val degree = loadDegree(city)
+        binding.textviewSecond.text = degree.toString()
+        binding.progess.isVisible = false
+    }
+
+    private suspend fun loadCity(): String {
+        delay(1000)
+        return "Moscow"
+    }
+
+    private suspend fun loadDegree(city: String): Int {
+        delay(1000)
+        Log.d("test", city)
+        return 25
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.buttonFirst.setOnClickListener {
-            download()
+           // downloadWithoutCoroutines(0, "")
+            lifecycleScope.launch {
+                download()
+            }
         }
 
     }
