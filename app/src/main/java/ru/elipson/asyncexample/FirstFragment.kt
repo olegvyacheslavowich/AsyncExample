@@ -78,12 +78,8 @@ class FirstFragment : Fragment() {
     }
 
     private suspend fun download() {
-        binding.progess.isVisible = true
-        val city = loadCity()
-        binding.textviewFirst.text = city
-        val degree = loadDegree(city)
-        binding.textviewSecond.text = degree.toString()
-        binding.progess.isVisible = false
+
+
     }
 
     private suspend fun loadCity(): String {
@@ -91,9 +87,9 @@ class FirstFragment : Fragment() {
         return "Moscow"
     }
 
-    private suspend fun loadDegree(city: String): Int {
-        delay(1000)
-        Log.d("test", city)
+    private suspend fun loadDegree(): Int {
+        delay(5000)
+       // Log.d("test", city)
         return 25
     }
 
@@ -102,10 +98,31 @@ class FirstFragment : Fragment() {
 
         binding.buttonFirst.setOnClickListener {
            // downloadWithoutCoroutines(0, "")
-            lifecycleScope.launch {
-                download()
+            binding.progess.isVisible = true
+
+            val jobCity = lifecycleScope.launch {
+                val city  = loadCity()
+                binding.textviewFirst.text = city
             }
+
+            val jobTemp = lifecycleScope.launch {
+                val degree = loadDegree()
+                binding.textviewSecond.text = degree.toString()
+                binding.progess.isVisible = false
+            }
+
+            lifecycleScope.launch {
+                jobCity.join()
+                jobTemp.join()
+
+                binding.progess.isVisible = false
+
+            }
+
+
         }
+
+
 
     }
 
