@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.elipson.asyncexample.databinding.FragmentFirstBinding
@@ -89,39 +90,43 @@ class FirstFragment : Fragment() {
 
     private suspend fun loadDegree(): Int {
         delay(5000)
-       // Log.d("test", city)
+        // Log.d("test", city)
         return 25
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+        super.onViewCreated(view, savedInstanceState) 
 
         binding.buttonFirst.setOnClickListener {
-           // downloadWithoutCoroutines(0, "")
+            // downloadWithoutCoroutines(0, "")
             binding.progess.isVisible = true
 
-            val jobCity = lifecycleScope.launch {
-                val city  = loadCity()
+            val deferredCity = lifecycleScope.async {
+                val city = loadCity()
                 binding.textviewFirst.text = city
+                city
             }
 
-            val jobTemp = lifecycleScope.launch {
+            val deferredTemp = lifecycleScope.async {
                 val degree = loadDegree()
                 binding.textviewSecond.text = degree.toString()
                 binding.progess.isVisible = false
+                degree
             }
 
             lifecycleScope.launch {
-                jobCity.join()
-                jobTemp.join()
+                val city = deferredCity.await()
+                val temp = deferredTemp.await()
 
                 binding.progess.isVisible = false
+
+                Toast.makeText(requireContext(), "City: $city; temp: $temp", Toast.LENGTH_LONG)
+                    .show()
 
             }
 
 
         }
-
 
 
     }
